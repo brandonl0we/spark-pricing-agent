@@ -4,33 +4,37 @@ import { FormEvent, useMemo, useState } from "react";
 import type { PricingResult } from "@/lib/pricing/schema";
 
 type FormState = {
-  repEmail: string;
-  accountName: string;
-  opportunityId: string;
-  dealType: string;
-  customerSegment: string;
-  productPackage: string;
+  accountId: string;
+  planTier: string;
   region: string;
-  seats: string;
-  contractMonths: string;
+  productLine: string;
+  resellerId: string;
+  contactLimit: string;
   listPrice: string;
-  requestedDiscount: string;
-  notes: string;
+  discountRate: string;
+  smsFlag: string;
+  smsCredits: string;
+  whatsapp: string;
+  termLength: string;
+  arr: string;
+  priceRealization: string;
 };
 
 const initialForm: FormState = {
-  repEmail: "",
-  accountName: "",
-  opportunityId: "",
-  dealType: "new_business",
-  customerSegment: "mid_market",
-  productPackage: "growth",
-  region: "na",
-  seats: "250",
-  contractMonths: "12",
-  listPrice: "50000",
-  requestedDiscount: "10",
-  notes: ""
+  accountId: "",
+  planTier: "",
+  region: "",
+  productLine: "",
+  resellerId: "",
+  contactLimit: "",
+  listPrice: "",
+  discountRate: "",
+  smsFlag: "",
+  smsCredits: "",
+  whatsapp: "",
+  termLength: "",
+  arr: "",
+  priceRealization: ""
 };
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -41,6 +45,20 @@ const currency = new Intl.NumberFormat("en-US", {
 
 const percent = (value: number) => `${value.toFixed(value % 1 ? 1 : 0)}%`;
 
+const booleanOptions = [
+  { label: "Unknown", value: "" },
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" }
+];
+
+function emptyToUndefined(value: string) {
+  return value === "" ? undefined : value;
+}
+
+function emptyToNumber(value: string) {
+  return value === "" ? undefined : Number(value);
+}
+
 export default function Home() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [result, setResult] = useState<PricingResult | null>(null);
@@ -48,8 +66,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   const requestedDiscountNumber = useMemo(
-    () => Number.parseFloat(form.requestedDiscount || "0"),
-    [form.requestedDiscount]
+    () => Number.parseFloat(form.discountRate || "0"),
+    [form.discountRate]
   );
 
   function updateField(name: keyof FormState, value: string) {
@@ -66,11 +84,20 @@ export default function Home() {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        ...form,
-        seats: Number(form.seats),
-        contractMonths: Number(form.contractMonths),
-        listPrice: Number(form.listPrice),
-        requestedDiscount: Number(form.requestedDiscount || 0)
+        accountId: emptyToUndefined(form.accountId),
+        planTier: emptyToUndefined(form.planTier),
+        region: emptyToUndefined(form.region),
+        productLine: emptyToUndefined(form.productLine),
+        resellerId: emptyToUndefined(form.resellerId),
+        contactLimit: emptyToNumber(form.contactLimit),
+        listPrice: emptyToNumber(form.listPrice),
+        discountRate: emptyToNumber(form.discountRate),
+        smsFlag: form.smsFlag === "" ? undefined : form.smsFlag === "true",
+        smsCredits: emptyToNumber(form.smsCredits),
+        whatsapp: form.whatsapp === "" ? undefined : form.whatsapp === "true",
+        termLength: emptyToNumber(form.termLength),
+        arr: emptyToNumber(form.arr),
+        priceRealization: emptyToNumber(form.priceRealization)
       })
     });
 
@@ -93,158 +120,175 @@ export default function Home() {
             <p className="eyebrow">Spark pricing workspace</p>
             <h1>Discount guidance</h1>
           </div>
-          <div className="statusPill">Provider-ready</div>
+          <div className="statusPill">Snowflake fields</div>
         </header>
 
         <div className="contentGrid">
           <form className="pricingForm" onSubmit={submitPricingRequest}>
             <div className="sectionHeader">
-              <h2>Deal inputs</h2>
-              <span>Required</span>
+              <h2>Model inputs</h2>
+              <span>All optional</span>
             </div>
-
-            <label>
-              Rep email
-              <input
-                autoComplete="email"
-                name="repEmail"
-                onChange={(event) => updateField("repEmail", event.target.value)}
-                placeholder="rep@company.com"
-                required
-                type="email"
-                value={form.repEmail}
-              />
-            </label>
 
             <div className="twoCol">
               <label>
-                Account
+                Account ID
                 <input
-                  name="accountName"
-                  onChange={(event) => updateField("accountName", event.target.value)}
-                  placeholder="Acme Inc."
-                  required
-                  value={form.accountName}
+                  name="accountId"
+                  onChange={(event) => updateField("accountId", event.target.value)}
+                  placeholder="AccountID"
+                  value={form.accountId}
                 />
               </label>
 
               <label>
-                Opportunity ID
+                Reseller ID
                 <input
-                  name="opportunityId"
-                  onChange={(event) => updateField("opportunityId", event.target.value)}
-                  placeholder="006..."
-                  required
-                  value={form.opportunityId}
+                  name="resellerId"
+                  onChange={(event) => updateField("resellerId", event.target.value)}
+                  placeholder="RSID"
+                  value={form.resellerId}
                 />
               </label>
             </div>
 
             <div className="threeCol">
               <label>
-                Deal type
-                <select value={form.dealType} onChange={(event) => updateField("dealType", event.target.value)}>
-                  <option value="new_business">New business</option>
-                  <option value="expansion">Expansion</option>
-                  <option value="renewal">Renewal</option>
-                </select>
-              </label>
-
-              <label>
-                Segment
-                <select
-                  value={form.customerSegment}
-                  onChange={(event) => updateField("customerSegment", event.target.value)}
-                >
-                  <option value="smb">SMB</option>
-                  <option value="mid_market">Mid-market</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
+                Plan tier
+                <input
+                  name="planTier"
+                  onChange={(event) => updateField("planTier", event.target.value)}
+                  placeholder="Starter, Plus, Pro, Enterprise"
+                  value={form.planTier}
+                />
               </label>
 
               <label>
                 Region
-                <select value={form.region} onChange={(event) => updateField("region", event.target.value)}>
-                  <option value="na">North America</option>
-                  <option value="emea">EMEA</option>
-                  <option value="apac">APAC</option>
-                  <option value="latam">LATAM</option>
-                </select>
+                <input
+                  name="region"
+                  onChange={(event) => updateField("region", event.target.value)}
+                  placeholder="NA, EMEA, APAC"
+                  value={form.region}
+                />
+              </label>
+
+              <label>
+                Product line
+                <input
+                  name="productLine"
+                  onChange={(event) => updateField("productLine", event.target.value)}
+                  placeholder="ProductLine"
+                  value={form.productLine}
+                />
               </label>
             </div>
 
             <div className="threeCol">
               <label>
-                Package
-                <select
-                  value={form.productPackage}
-                  onChange={(event) => updateField("productPackage", event.target.value)}
-                >
-                  <option value="starter">Starter</option>
-                  <option value="growth">Growth</option>
-                  <option value="enterprise">Enterprise</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </label>
-
-              <label>
-                Seats
+                Contact limit
                 <input
-                  min="1"
-                  onChange={(event) => updateField("seats", event.target.value)}
-                  required
+                  min="0"
+                  name="contactLimit"
+                  onChange={(event) => updateField("contactLimit", event.target.value)}
                   type="number"
-                  value={form.seats}
+                  value={form.contactLimit}
                 />
               </label>
 
               <label>
-                Term
-                <select
-                  value={form.contractMonths}
-                  onChange={(event) => updateField("contractMonths", event.target.value)}
-                >
-                  <option value="1">Monthly</option>
-                  <option value="12">12 months</option>
-                  <option value="24">24 months</option>
-                  <option value="36">36 months</option>
-                </select>
+                Term length
+                <input
+                  min="0"
+                  name="termLength"
+                  onChange={(event) => updateField("termLength", event.target.value)}
+                  placeholder="Months"
+                  type="number"
+                  value={form.termLength}
+                />
+              </label>
+
+              <label>
+                SMS credits
+                <input
+                  min="0"
+                  name="smsCredits"
+                  onChange={(event) => updateField("smsCredits", event.target.value)}
+                  type="number"
+                  value={form.smsCredits}
+                />
               </label>
             </div>
 
-            <div className="twoCol">
+            <div className="threeCol">
               <label>
                 List price
                 <input
-                  min="1"
+                  min="0"
+                  name="listPrice"
                   onChange={(event) => updateField("listPrice", event.target.value)}
-                  required
                   type="number"
                   value={form.listPrice}
                 />
               </label>
 
               <label>
-                Requested discount
+                Discount rate
                 <input
-                  max="95"
                   min="0"
-                  onChange={(event) => updateField("requestedDiscount", event.target.value)}
+                  name="discountRate"
+                  onChange={(event) => updateField("discountRate", event.target.value)}
                   type="number"
-                  value={form.requestedDiscount}
+                  value={form.discountRate}
+                />
+              </label>
+
+              <label>
+                ARR
+                <input
+                  min="0"
+                  name="arr"
+                  onChange={(event) => updateField("arr", event.target.value)}
+                  type="number"
+                  value={form.arr}
                 />
               </label>
             </div>
 
-            <label>
-              Notes
-              <textarea
-                onChange={(event) => updateField("notes", event.target.value)}
-                placeholder="Competitor pressure, strategic logo, procurement notes..."
-                rows={4}
-                value={form.notes}
-              />
-            </label>
+            <div className="threeCol">
+              <label>
+                Price realization
+                <input
+                  min="0"
+                  name="priceRealization"
+                  onChange={(event) => updateField("priceRealization", event.target.value)}
+                  type="number"
+                  value={form.priceRealization}
+                />
+              </label>
+
+              <label>
+                SMS
+                <select value={form.smsFlag} onChange={(event) => updateField("smsFlag", event.target.value)}>
+                  {booleanOptions.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                WhatsApp
+                <select value={form.whatsapp} onChange={(event) => updateField("whatsapp", event.target.value)}>
+                  {booleanOptions.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             {error ? <div className="errorBox">{error}</div> : null}
 
@@ -286,7 +330,7 @@ export default function Home() {
                 </div>
 
                 <div className="comparison">
-                  <span>Requested discount</span>
+                  <span>Input discount rate</span>
                   <strong>{percent(Number.isFinite(requestedDiscountNumber) ? requestedDiscountNumber : 0)}</strong>
                 </div>
 
@@ -312,8 +356,8 @@ export default function Home() {
               </div>
             ) : (
               <div className="emptyState">
-                <strong>Ready for a deal.</strong>
-                <p>The mock pricing provider is active until the Zapier webhook is added.</p>
+                <strong>Ready for model inputs.</strong>
+                <p>Blank fields are omitted so the pricing model can infer from what is available.</p>
               </div>
             )}
           </aside>

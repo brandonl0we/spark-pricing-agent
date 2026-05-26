@@ -1,0 +1,12 @@
+{
+  "healthCheck": {
+    "path": "/api/health"
+  },
+  "resources": {
+    "cpu": "500m",
+    "memory": "512Mi"
+  },
+  "env": {
+    "PRICING_PROVIDER": "mock"
+  }
+}

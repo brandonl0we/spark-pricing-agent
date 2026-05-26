@@ -1,6 +1,6 @@
 # Spark Pricing Agent
 
-A small Spark-ready pricing app for sales reps. The app collects deal inputs, calls a normalized pricing provider, and returns discount guidance that can later be backed by Snowflake directly.
+A small Spark-ready pricing app for sales reps. The app collects Snowflake pricing-model inputs, calls a normalized pricing provider, and returns discount guidance that can later be backed by Snowflake directly.
 
 ## Current State
 
@@ -34,20 +34,37 @@ Open `http://localhost:3000`.
 
 `POST /api/price`
 
+All fields are optional. Blank form fields are omitted from the request.
+
 ```json
 {
-  "repEmail": "rep@example.com",
-  "accountName": "Acme Inc.",
-  "opportunityId": "006abc",
-  "dealType": "new_business",
-  "customerSegment": "mid_market",
-  "productPackage": "growth",
-  "region": "na",
-  "seats": 250,
-  "contractMonths": 12,
+  "accountId": "123456",
+  "planTier": "Enterprise",
+  "region": "NA",
+  "productLine": "Marketing",
+  "resellerId": "RSID-123",
+  "contactLimit": 50000,
   "listPrice": 50000,
-  "requestedDiscount": 10,
-  "notes": "Competitor pressure"
+  "discountRate": 10,
+  "smsFlag": true,
+  "smsCredits": 1000,
+  "whatsapp": false,
+  "termLength": 12,
+  "arr": 42000,
+  "priceRealization": 0.84
+}
+```
+
+Zapier receives this under the `request` key:
+
+```json
+{
+  "request": {
+    "accountId": "123456",
+    "planTier": "Enterprise"
+  },
+  "requestedAt": "2026-05-26T12:00:00.000Z",
+  "source": "spark-pricing-agent"
 }
 ```
 

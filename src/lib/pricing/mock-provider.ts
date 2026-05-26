@@ -5,18 +5,6 @@ import {
   PricingResult
 } from "./schema";
 
-const segmentBaseDiscount = {
-  smb: 8,
-  mid_market: 12,
-  enterprise: 16
-};
-
-const dealTypeAdjustment = {
-  new_business: 0,
-  expansion: 3,
-  renewal: 2
-};
-
 function approvalLevelFor(requestedDiscount: number, maxDiscount: number): PricingResult["approvalLevel"] {
   if (requestedDiscount <= maxDiscount) return "None";
   if (requestedDiscount <= maxDiscount + 5) return "Manager";
@@ -26,21 +14,18 @@ function approvalLevelFor(requestedDiscount: number, maxDiscount: number): Prici
 
 export const mockPricingProvider: PricingProvider = {
   async calculate(request: PricingRequest): Promise<PricingResult> {
-    const termBoost = request.contractMonths >= 36 ? 4 : request.contractMonths >= 24 ? 2 : 0;
-    const seatBoost = request.seats >= 1000 ? 4 : request.seats >= 250 ? 2 : 0;
-    const enterprisePackageBoost = request.productPackage === "enterprise" ? 2 : 0;
-    const base =
-      segmentBaseDiscount[request.customerSegment] +
-      dealTypeAdjustment[request.dealType] +
-      termBoost +
-      seatBoost +
-      enterprisePackageBoost;
+    const termBoost = (request.termLength ?? 0) >= 36 ? 4 : (request.termLength ?? 0) >= 24 ? 2 : 0;
+    const contactBoost = (request.contactLimit ?? 0) >= 100000 ? 4 : (request.contactLimit ?? 0) >= 25000 ? 2 : 0;
+    const tier = (request.planTier ?? "").toLowerCase();
+    const tierBoost = tier.includes("enterprise") || tier.includes("pro") ? 4 : tier.includes("plus") ? 2 : 0;
+    const base = 8 + termBoost + contactBoost + tierBoost;
 
     const maxDiscount = Math.min(35, base + 4);
     const recommendedDiscount = Math.min(maxDiscount, Math.max(5, base));
-    const recommendedPrice = normalizeCurrency(request.listPrice * (1 - recommendedDiscount / 100));
-    const floorPrice = normalizeCurrency(request.listPrice * (1 - maxDiscount / 100));
-    const approvalLevel = approvalLevelFor(request.requestedDiscount ?? 0, maxDiscount);
+    const listPrice = request.listPrice ?? request.arr ?? 0;
+    const recommendedPrice = normalizeCurrency(listPrice * (1 - recommendedDiscount / 100));
+    const floorPrice = normalizeCurrency(listPrice * (1 - maxDiscount / 100));
+    const approvalLevel = approvalLevelFor(request.discountRate ?? 0, maxDiscount);
 
     return {
       quoteId: `Q-${Date.now().toString(36).toUpperCase()}`,
@@ -51,10 +36,10 @@ export const mockPricingProvider: PricingProvider = {
       approvalRequired: approvalLevel !== "None",
       approvalLevel,
       reasonCodes: [
-        `Segment: ${request.customerSegment.replace("_", " ")}`,
-        `Deal type: ${request.dealType.replace("_", " ")}`,
-        `Term: ${request.contractMonths} months`,
-        `Seats: ${request.seats.toLocaleString()}`
+        `Plan tier: ${request.planTier ?? "not provided"}`,
+        `Region: ${request.region ?? "not provided"}`,
+        `Product line: ${request.productLine ?? "not provided"}`,
+        `Term: ${request.termLength ?? "not provided"}`
       ],
       modelVersion: process.env.PRICING_MODEL_VERSION ?? "mock-2026-05",
       provider: "mock",

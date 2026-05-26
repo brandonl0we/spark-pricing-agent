@@ -1,18 +1,38 @@
 import { z } from "zod";
 
+const optionalString = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.string().optional()
+);
+
+const optionalNumber = z.preprocess((value) => {
+  if (value === "" || value === null || typeof value === "undefined") return undefined;
+  return Number(value);
+}, z.number().finite().optional());
+
+const optionalBoolean = z.preprocess((value) => {
+  if (value === "" || value === null || typeof value === "undefined") return undefined;
+  if (typeof value === "boolean") return value;
+  if (value === "true" || value === "yes" || value === "1") return true;
+  if (value === "false" || value === "no" || value === "0") return false;
+  return value;
+}, z.boolean().optional());
+
 export const pricingRequestSchema = z.object({
-  repEmail: z.string().email("Enter a valid rep email."),
-  accountName: z.string().min(2, "Account name is required."),
-  opportunityId: z.string().min(2, "Opportunity ID is required."),
-  dealType: z.enum(["new_business", "expansion", "renewal"]),
-  customerSegment: z.enum(["smb", "mid_market", "enterprise"]),
-  productPackage: z.enum(["starter", "growth", "enterprise", "custom"]),
-  region: z.enum(["na", "emea", "apac", "latam"]),
-  seats: z.coerce.number().int().min(1).max(100000),
-  contractMonths: z.coerce.number().int().min(1).max(60),
-  listPrice: z.coerce.number().min(1).max(100000000),
-  requestedDiscount: z.coerce.number().min(0).max(95).optional().default(0),
-  notes: z.string().max(1200).optional().default("")
+  accountId: optionalString,
+  planTier: optionalString,
+  region: optionalString,
+  productLine: optionalString,
+  resellerId: optionalString,
+  contactLimit: optionalNumber,
+  listPrice: optionalNumber,
+  discountRate: optionalNumber,
+  smsFlag: optionalBoolean,
+  smsCredits: optionalNumber,
+  whatsapp: optionalBoolean,
+  termLength: optionalNumber,
+  arr: optionalNumber,
+  priceRealization: optionalNumber
 });
 
 export type PricingRequest = z.infer<typeof pricingRequestSchema>;

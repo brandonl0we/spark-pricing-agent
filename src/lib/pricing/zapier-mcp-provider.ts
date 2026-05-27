@@ -26,6 +26,14 @@ type McpCallResult = {
   structuredContent?: unknown;
 };
 
+function getZapierMcpBearerToken() {
+  return (
+    process.env.ZAPIER_MCP_KEY ??
+    process.env.ZAPIER_MCP_API ??
+    process.env.ZAPIER_MCP_BEARER_TOKEN
+  );
+}
+
 function compactRequest(request: PricingRequest) {
   return Object.fromEntries(
     Object.entries(request).filter(([, value]) => value !== "" && value !== null && value !== undefined)
@@ -57,6 +65,7 @@ function parseMcpBody(text: string): JsonRpcResponse {
 
 async function postMcp<T>(method: string, params?: Record<string, unknown>, sessionId?: string) {
   const serverUrl = process.env.ZAPIER_MCP_SERVER_URL;
+  const bearerToken = getZapierMcpBearerToken();
   if (!serverUrl) {
     throw new Error("ZAPIER_MCP_SERVER_URL is not configured.");
   }
@@ -67,9 +76,7 @@ async function postMcp<T>(method: string, params?: Record<string, unknown>, sess
       "accept": "application/json, text/event-stream",
       "content-type": "application/json",
       ...(sessionId ? { "mcp-session-id": sessionId } : {}),
-      ...(process.env.ZAPIER_MCP_BEARER_TOKEN
-        ? { "authorization": `Bearer ${process.env.ZAPIER_MCP_BEARER_TOKEN}` }
-        : {})
+      ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
     },
     body: JSON.stringify({
       jsonrpc: "2.0",
@@ -97,6 +104,7 @@ async function postMcp<T>(method: string, params?: Record<string, unknown>, sess
 
 async function notifyMcp(method: string, sessionId?: string) {
   const serverUrl = process.env.ZAPIER_MCP_SERVER_URL;
+  const bearerToken = getZapierMcpBearerToken();
   if (!serverUrl) {
     throw new Error("ZAPIER_MCP_SERVER_URL is not configured.");
   }
@@ -107,9 +115,7 @@ async function notifyMcp(method: string, sessionId?: string) {
       "accept": "application/json, text/event-stream",
       "content-type": "application/json",
       ...(sessionId ? { "mcp-session-id": sessionId } : {}),
-      ...(process.env.ZAPIER_MCP_BEARER_TOKEN
-        ? { "authorization": `Bearer ${process.env.ZAPIER_MCP_BEARER_TOKEN}` }
-        : {})
+      ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
     },
     body: JSON.stringify({
       jsonrpc: "2.0",

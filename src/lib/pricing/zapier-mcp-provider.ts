@@ -12,7 +12,8 @@ type ZapierRowsPayload =
   | { rows?: unknown[]; results?: unknown[] | { rows?: unknown[] }; data?: unknown[] }
   | unknown[];
 
-const DEFAULT_MCP_TIMEOUT_MS = 120_000;
+const DEFAULT_MCP_TIMEOUT_MS = 25_000;
+const MCP_CLOSE_TIMEOUT_MS = 1_000;
 
 function getZapierMcpUrl() {
   return process.env.ZAPIER_MCP_URL ?? process.env.ZAPIER_MCP_SERVER_URL;
@@ -48,6 +49,12 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   });
 
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeout));
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function parseJson(value: string) {
@@ -166,7 +173,7 @@ async function callSnowflakePricingProcedure(request: PricingRequest) {
       "Zapier MCP snowflake_execute_sql"
     );
   } finally {
-    await client.close().catch(() => undefined);
+    await Promise.race([client.close(), wait(MCP_CLOSE_TIMEOUT_MS)]).catch(() => undefined);
   }
 }
 

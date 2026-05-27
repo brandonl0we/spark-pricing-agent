@@ -35,8 +35,8 @@ Open `http://localhost:3000`.
 | `ZAPIER_MCP_TOKEN` | For Zapier MCP | Alias used by AP-Sparkle for the Zapier MCP bearer token. |
 | `ZAPIER_MCP_API` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
 | `ZAPIER_MCP_BEARER_TOKEN` | Optional | Bearer token if your Zapier MCP setup gives auth separately from the URL. |
-| `ZAPIER_MCP_TOOL_NAME` | Optional | Exact Zapier MCP tool name to call. If omitted, the app tries to infer a Snowflake SQL/query tool. |
-| `ZAPIER_MCP_SQL_FIELD` | Optional | Tool argument name that should receive the SQL string. Defaults to `sql`. |
+| `ZAPIER_MCP_TOOL_NAME` | Optional | Exact Zapier MCP tool name to call. Defaults to `snowflake_execute_sql`. |
+| `ZAPIER_MCP_TIMEOUT_MS` | Optional | Timeout for MCP connect and Snowflake execution calls. Defaults to `25000`. |
 | `PRICING_MODEL_VERSION` | Optional | Included in mock/API responses for audit and debugging. |
 
 ## Pricing Request Shape

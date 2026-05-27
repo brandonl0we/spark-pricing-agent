@@ -7,7 +7,6 @@ A small Spark-ready pricing app for sales reps. The app collects Snowflake prici
 - Working Next.js app with a sales rep pricing form.
 - `POST /api/price` validates requests with Zod.
 - `PRICING_PROVIDER=mock` works locally with deterministic sample guidance.
-- `PRICING_PROVIDER=zapier-async` is ready for a Zapier Catch Hook plus callback.
 - `PRICING_PROVIDER=zapier` is available only for synchronous webhook responders.
 - `PRICING_PROVIDER=zapier-mcp` is ready for a synchronous Zapier MCP Snowflake tool call.
 - `/api/health` is wired for Spark health checks.
@@ -27,11 +26,13 @@ Open `http://localhost:3000`.
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `PRICING_PROVIDER` | Yes | `mock`, `zapier-async`, `zapier`, or `zapier-mcp`. Defaults to `mock` if omitted. |
+| `PRICING_PROVIDER` | Yes | `mock`, `zapier`, or `zapier-mcp`. Defaults to `mock` if omitted. |
 | `ZAPIER_PRICING_WEBHOOK_URL` | For Zapier | Zapier Catch Hook URL used by the backend provider. |
 | `ZAPIER_PRICING_SHARED_SECRET` | Optional | Sent to Zapier as `X-Pricing-Secret`. Useful for simple webhook validation. |
 | `ZAPIER_MCP_SERVER_URL` | For Zapier MCP | Private Zapier MCP server URL. This usually includes auth in the URL and should be treated like a secret. |
+| `ZAPIER_MCP_URL` | For Zapier MCP | Alias used by AP-Sparkle for the Zapier MCP server URL. |
 | `ZAPIER_MCP_KEY` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
+| `ZAPIER_MCP_TOKEN` | For Zapier MCP | Alias used by AP-Sparkle for the Zapier MCP bearer token. |
 | `ZAPIER_MCP_API` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
 | `ZAPIER_MCP_BEARER_TOKEN` | Optional | Bearer token if your Zapier MCP setup gives auth separately from the URL. |
 | `ZAPIER_MCP_TOOL_NAME` | Optional | Exact Zapier MCP tool name to call. If omitted, the app tries to infer a Snowflake SQL/query tool. |
@@ -113,49 +114,9 @@ UI -> /api/price -> Zapier soon
 UI -> /api/price -> direct Snowflake later
 ```
 
-## Zapier Async Bridge
-
-Use this for Zapier Catch Hook flows because Zapier cannot return the Snowflake result to the original request.
-
-Spark secrets:
-
-```text
-PRICING_PROVIDER=zapier-async
-ZAPIER_PRICING_WEBHOOK_URL=<Zapier Catch Hook URL>
-```
-
-Zapier flow:
-
-1. Catch Hook receives all pricing fields plus `requestId` and `callbackUrl`.
-2. Code/Snowflake steps calculate the pricing guidance.
-3. Add **Webhooks by Zapier -> POST** as the final step.
-4. POST to the `callbackUrl` from the trigger.
-5. Send JSON with `requestId` from the trigger and the pricing result.
-
-Callback body shape:
-
-```json
-{
-  "requestId": "{{requestId from trigger}}",
-  "result": {
-    "quoteId": "{{Quote Id}}",
-    "recommendedDiscount": "{{Recommended Discount}}",
-    "maxDiscount": "{{Max Discount}}",
-    "floorPrice": "{{Floor Price}}",
-    "recommendedPrice": "{{Recommended Price}}",
-    "approvalRequired": "{{Approval Required}}",
-    "approvalLevel": "{{Approval Level}}",
-    "reasonCodes": ["{{Reason Code 1}}", "{{Reason Code 2}}"],
-    "modelVersion": "{{Model Version}}",
-    "provider": "snowflake",
-    "calculatedAt": "{{Calculated At}}"
-  }
-}
-```
-
 ## Zapier MCP Bridge
 
-Use this when Zapier's Catch Hook cannot return a custom response.
+Use this to call the same Snowflake-authed Zapier MCP path AP-Sparkle uses.
 
 Spark secrets:
 
@@ -163,12 +124,11 @@ Spark secrets:
 PRICING_PROVIDER=zapier-mcp
 ZAPIER_MCP_SERVER_URL=<private Zapier MCP server URL>
 ZAPIER_MCP_KEY=<Zapier MCP bearer token>
-ZAPIER_MCP_API=<Zapier MCP bearer token>
-ZAPIER_MCP_TOOL_NAME=<Snowflake SQL/query tool name>
-ZAPIER_MCP_SQL_FIELD=sql
+ZAPIER_MCP_TOOL_NAME=snowflake_execute_sql
 ```
 
-The provider calls the selected MCP tool with this SQL:
+The provider calls `snowflake_execute_sql` with `statement`, `output_hint`, and `instructions`.
+The statement is:
 
 ```sql
 CALL AC.SANDBOX.CALCULATE_PRICING_GUIDANCE(

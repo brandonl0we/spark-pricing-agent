@@ -93,7 +93,7 @@ export function normalizePricingResult(value: unknown): PricingResult | null {
     calculatedAt: stringFrom(record.calculatedAt ?? record["Calculated At"] ?? record.calculated_at) ?? new Date().toISOString(),
     floorPrice,
     maxDiscount,
-    modelVersion: stringFrom(record.modelVersion ?? record["Model Version"] ?? record.model_version) ?? "zapier-async",
+    modelVersion: stringFrom(record.modelVersion ?? record["Model Version"] ?? record.model_version) ?? "pricing-guidance",
     provider: "zapier",
     quoteId,
     reasonCodes,

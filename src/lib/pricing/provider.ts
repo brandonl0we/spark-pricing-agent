@@ -8,7 +8,6 @@ export function getPricingProvider(): PricingProvider {
 
   if (provider === "zapier") return zapierPricingProvider;
   if (provider === "zapier-mcp") return zapierMcpPricingProvider;
-  if (provider === "zapier-async") return zapierPricingProvider;
   if (provider === "mock") return mockPricingProvider;
 
   throw new Error(`Unsupported PRICING_PROVIDER: ${provider}`);

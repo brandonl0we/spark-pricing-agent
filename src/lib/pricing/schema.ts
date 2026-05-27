@@ -47,7 +47,7 @@ export type PricingResult = {
   approvalLevel: "None" | "Manager" | "Director" | "VP";
   reasonCodes: string[];
   modelVersion: string;
-  provider: "mock" | "zapier" | "snowflake";
+  provider: "mock" | "zapier" | "zapier-mcp" | "snowflake";
   calculatedAt: string;
 };
 

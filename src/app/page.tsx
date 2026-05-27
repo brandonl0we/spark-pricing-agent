@@ -80,36 +80,50 @@ export default function Home() {
     setError(null);
     setResult(null);
 
-    const response = await fetch("/api/price", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        accountId: emptyToUndefined(form.accountId),
-        planTier: emptyToUndefined(form.planTier),
-        region: emptyToUndefined(form.region),
-        productLine: emptyToUndefined(form.productLine),
-        resellerId: emptyToUndefined(form.resellerId),
-        contactLimit: emptyToNumber(form.contactLimit),
-        listPrice: emptyToNumber(form.listPrice),
-        discountRate: emptyToNumber(form.discountRate),
-        smsFlag: form.smsFlag === "" ? undefined : form.smsFlag === "true",
-        smsCredits: emptyToNumber(form.smsCredits),
-        whatsapp: form.whatsapp === "" ? undefined : form.whatsapp === "true",
-        termLength: emptyToNumber(form.termLength),
-        arr: emptyToNumber(form.arr),
-        priceRealization: emptyToNumber(form.priceRealization)
-      })
-    });
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60_000);
 
-    const payload = await response.json();
-    setIsLoading(false);
+    try {
+      const response = await fetch("/api/price", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          accountId: emptyToUndefined(form.accountId),
+          planTier: emptyToUndefined(form.planTier),
+          region: emptyToUndefined(form.region),
+          productLine: emptyToUndefined(form.productLine),
+          resellerId: emptyToUndefined(form.resellerId),
+          contactLimit: emptyToNumber(form.contactLimit),
+          listPrice: emptyToNumber(form.listPrice),
+          discountRate: emptyToNumber(form.discountRate),
+          smsFlag: form.smsFlag === "" ? undefined : form.smsFlag === "true",
+          smsCredits: emptyToNumber(form.smsCredits),
+          whatsapp: form.whatsapp === "" ? undefined : form.whatsapp === "true",
+          termLength: emptyToNumber(form.termLength),
+          arr: emptyToNumber(form.arr),
+          priceRealization: emptyToNumber(form.priceRealization)
+        })
+      });
 
-    if (!response.ok) {
-      setError(payload.error ?? "Pricing request failed.");
-      return;
+      const payload = await response.json();
+
+      if (!response.ok) {
+        setError(payload.error ?? "Pricing request failed.");
+        return;
+      }
+
+      setResult(payload.result);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error && requestError.name === "AbortError"
+          ? "Pricing request timed out after 60 seconds."
+          : "Pricing request failed before a response was returned."
+      );
+    } finally {
+      window.clearTimeout(timeout);
+      setIsLoading(false);
     }
-
-    setResult(payload.result);
   }
 
   return (

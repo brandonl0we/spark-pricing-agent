@@ -1,19 +1,5 @@
 import { PricingProvider, PricingRequest, PricingResult } from "./schema";
-
-function isPricingResult(value: unknown): value is PricingResult {
-  if (!value || typeof value !== "object") return false;
-  const result = value as Partial<PricingResult>;
-  return (
-    typeof result.quoteId === "string" &&
-    typeof result.recommendedDiscount === "number" &&
-    typeof result.maxDiscount === "number" &&
-    typeof result.floorPrice === "number" &&
-    typeof result.recommendedPrice === "number" &&
-    typeof result.approvalRequired === "boolean" &&
-    typeof result.approvalLevel === "string" &&
-    Array.isArray(result.reasonCodes)
-  );
-}
+import { isPricingResult } from "./result-utils";
 
 export const zapierPricingProvider: PricingProvider = {
   async calculate(request: PricingRequest): Promise<PricingResult> {

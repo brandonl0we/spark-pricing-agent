@@ -67,6 +67,12 @@ function parseJson(text: string) {
   }
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 export default function Home() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [result, setResult] = useState<PricingResult | null>(null);
@@ -80,6 +86,28 @@ export default function Home() {
 
   function updateField(name: keyof FormState, value: string) {
     setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function pollPricingStatus(requestId: string) {
+    for (let attempt = 0; attempt < 60; attempt += 1) {
+      await wait(2_000);
+
+      const response = await fetch(`/api/price/status?requestId=${encodeURIComponent(requestId)}`);
+      const responseText = await response.text();
+      const payload = parseJson(responseText);
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error ??
+            `Pricing status failed with HTTP ${response.status}: ${responseText.slice(0, 500) || response.statusText}`
+        );
+      }
+
+      if (payload?.status === "complete" && payload.result) return payload.result as PricingResult;
+      if (payload?.status === "error") throw new Error(payload.error ?? "Pricing request failed.");
+    }
+
+    throw new Error("Pricing request timed out while waiting for Zapier.");
   }
 
   async function submitPricingRequest(event: FormEvent<HTMLFormElement>) {
@@ -126,6 +154,11 @@ export default function Home() {
       }
 
       if (!payload?.result) {
+        if (payload?.status === "pending" && typeof payload.requestId === "string") {
+          setResult(await pollPricingStatus(payload.requestId));
+          return;
+        }
+
         setError(`Pricing response was not valid JSON: ${responseText.slice(0, 500) || "Empty response"}`);
         return;
       }

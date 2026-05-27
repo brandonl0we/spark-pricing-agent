@@ -26,12 +26,18 @@ type McpCallResult = {
   structuredContent?: unknown;
 };
 
+const DEFAULT_MCP_TIMEOUT_MS = 45_000;
+
 function getZapierMcpBearerToken() {
   return (
     process.env.ZAPIER_MCP_KEY ??
     process.env.ZAPIER_MCP_API ??
     process.env.ZAPIER_MCP_BEARER_TOKEN
   );
+}
+
+function getMcpTimeoutMs() {
+  return Number(process.env.ZAPIER_MCP_TIMEOUT_MS ?? DEFAULT_MCP_TIMEOUT_MS);
 }
 
 function compactRequest(request: PricingRequest) {
@@ -42,6 +48,10 @@ function compactRequest(request: PricingRequest) {
 
 function buildSql(request: PricingRequest) {
   return `CALL AC.SANDBOX.CALCULATE_PRICING_GUIDANCE(PARSE_JSON($$${JSON.stringify(compactRequest(request))}$$));`;
+}
+
+function hasCompleteSsePayload(text: string) {
+  return text.includes("\n\n") && text.split("\n").some((line) => line.startsWith("data:"));
 }
 
 function parseMcpBody(text: string): JsonRpcResponse {
@@ -63,30 +73,75 @@ function parseMcpBody(text: string): JsonRpcResponse {
   return JSON.parse(dataLines[dataLines.length - 1]);
 }
 
+async function readMcpResponseBody(response: Response, timeoutMs: number) {
+  if (!response.body) return response.text();
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+
+  const read = async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) return text;
+
+      text += decoder.decode(value, { stream: true });
+      if (hasCompleteSsePayload(text)) {
+        await reader.cancel();
+        return text;
+      }
+    }
+  };
+
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reader.cancel("Zapier MCP response timed out.").catch(() => undefined);
+      reject(new Error(`Zapier MCP response timed out after ${timeoutMs / 1000}s.`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([read(), timeout]);
+}
+
 async function postMcp<T>(method: string, params?: Record<string, unknown>, sessionId?: string) {
   const serverUrl = process.env.ZAPIER_MCP_SERVER_URL;
   const bearerToken = getZapierMcpBearerToken();
+  const timeoutMs = getMcpTimeoutMs();
   if (!serverUrl) {
     throw new Error("ZAPIER_MCP_SERVER_URL is not configured.");
   }
 
-  const response = await fetch(serverUrl, {
-    method: "POST",
-    headers: {
-      "accept": "application/json, text/event-stream",
-      "content-type": "application/json",
-      ...(sessionId ? { "mcp-session-id": sessionId } : {}),
-      ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method,
-      params
-    })
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
 
-  const body = await response.text();
+  try {
+    response = await fetch(serverUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "accept": "application/json, text/event-stream",
+        "content-type": "application/json",
+        ...(sessionId ? { "mcp-session-id": sessionId } : {}),
+        ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method,
+        params
+      })
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Zapier MCP ${method} timed out after ${timeoutMs / 1000}s.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const body = await readMcpResponseBody(response, timeoutMs);
   if (!response.ok) {
     throw new Error(`Zapier MCP ${method} failed: ${response.status} ${body}`);
   }
@@ -105,23 +160,38 @@ async function postMcp<T>(method: string, params?: Record<string, unknown>, sess
 async function notifyMcp(method: string, sessionId?: string) {
   const serverUrl = process.env.ZAPIER_MCP_SERVER_URL;
   const bearerToken = getZapierMcpBearerToken();
+  const timeoutMs = getMcpTimeoutMs();
   if (!serverUrl) {
     throw new Error("ZAPIER_MCP_SERVER_URL is not configured.");
   }
 
-  const response = await fetch(serverUrl, {
-    method: "POST",
-    headers: {
-      "accept": "application/json, text/event-stream",
-      "content-type": "application/json",
-      ...(sessionId ? { "mcp-session-id": sessionId } : {}),
-      ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
-    },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method
-    })
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(serverUrl, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "accept": "application/json, text/event-stream",
+        "content-type": "application/json",
+        ...(sessionId ? { "mcp-session-id": sessionId } : {}),
+        ...(bearerToken ? { "authorization": `Bearer ${bearerToken}` } : {})
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method
+      })
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Zapier MCP ${method} timed out after ${timeoutMs / 1000}s.`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const body = await response.text();

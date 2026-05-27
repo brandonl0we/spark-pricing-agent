@@ -95,6 +95,34 @@ async function postMcp<T>(method: string, params?: Record<string, unknown>, sess
   };
 }
 
+async function notifyMcp(method: string, sessionId?: string) {
+  const serverUrl = process.env.ZAPIER_MCP_SERVER_URL;
+  if (!serverUrl) {
+    throw new Error("ZAPIER_MCP_SERVER_URL is not configured.");
+  }
+
+  const response = await fetch(serverUrl, {
+    method: "POST",
+    headers: {
+      "accept": "application/json, text/event-stream",
+      "content-type": "application/json",
+      ...(sessionId ? { "mcp-session-id": sessionId } : {}),
+      ...(process.env.ZAPIER_MCP_BEARER_TOKEN
+        ? { "authorization": `Bearer ${process.env.ZAPIER_MCP_BEARER_TOKEN}` }
+        : {})
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method
+    })
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Zapier MCP ${method} failed: ${response.status} ${body}`);
+  }
+}
+
 function chooseTool(tools: McpTool[]) {
   const configured = process.env.ZAPIER_MCP_TOOL_NAME;
   if (configured) {
@@ -187,13 +215,14 @@ function extractPricingResult(callResult: McpCallResult) {
 export const zapierMcpPricingProvider: PricingProvider = {
   async calculate(request: PricingRequest): Promise<PricingResult> {
     const initialized = await postMcp<{ protocolVersion: string }>("initialize", {
-      protocolVersion: "2024-11-05",
+      protocolVersion: "2025-03-26",
       capabilities: {},
       clientInfo: {
         name: "spark-pricing-agent",
         version: "0.1.0"
       }
     });
+    await notifyMcp("notifications/initialized", initialized.sessionId ?? undefined);
 
     const listed = await postMcp<{ tools: McpTool[] }>("tools/list", undefined, initialized.sessionId ?? undefined);
     const tool = chooseTool(listed.result.tools ?? []);

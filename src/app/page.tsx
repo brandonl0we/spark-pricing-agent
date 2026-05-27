@@ -59,6 +59,14 @@ function emptyToNumber(value: string) {
   return value === "" ? undefined : Number(value);
 }
 
+function parseJson(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [result, setResult] = useState<PricingResult | null>(null);
@@ -106,10 +114,19 @@ export default function Home() {
         })
       });
 
-      const payload = await response.json();
+      const responseText = await response.text();
+      const payload = parseJson(responseText);
 
       if (!response.ok) {
-        setError(payload.error ?? "Pricing request failed.");
+        setError(
+          payload?.error ??
+            `Pricing request failed with HTTP ${response.status}: ${responseText.slice(0, 500) || response.statusText}`
+        );
+        return;
+      }
+
+      if (!payload?.result) {
+        setError(`Pricing response was not valid JSON: ${responseText.slice(0, 500) || "Empty response"}`);
         return;
       }
 
@@ -118,7 +135,9 @@ export default function Home() {
       setError(
         requestError instanceof Error && requestError.name === "AbortError"
           ? "Pricing request timed out after 60 seconds."
-          : "Pricing request failed before a response was returned."
+          : `Pricing request failed before a response was returned: ${
+              requestError instanceof Error ? requestError.message : "Unknown browser error"
+            }`
       );
     } finally {
       window.clearTimeout(timeout);

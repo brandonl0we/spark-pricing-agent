@@ -30,6 +30,8 @@ Open `http://localhost:3000`.
 | `ZAPIER_PRICING_WEBHOOK_URL` | For Zapier | Zapier Catch Hook URL used by the backend provider. |
 | `ZAPIER_PRICING_SHARED_SECRET` | Optional | Sent to Zapier as `X-Pricing-Secret`. Useful for simple webhook validation. |
 | `ZAPIER_MCP_SERVER_URL` | For Zapier MCP | Private Zapier MCP server URL. This usually includes auth in the URL and should be treated like a secret. |
+| `ZAPIER_MCP_KEY` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
+| `ZAPIER_MCP_API` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
 | `ZAPIER_MCP_BEARER_TOKEN` | Optional | Bearer token if your Zapier MCP setup gives auth separately from the URL. |
 | `ZAPIER_MCP_TOOL_NAME` | Optional | Exact Zapier MCP tool name to call. If omitted, the app tries to infer a Snowflake SQL/query tool. |
 | `ZAPIER_MCP_SQL_FIELD` | Optional | Tool argument name that should receive the SQL string. Defaults to `sql`. |
@@ -119,6 +121,8 @@ Spark secrets:
 ```text
 PRICING_PROVIDER=zapier-mcp
 ZAPIER_MCP_SERVER_URL=<private Zapier MCP server URL>
+ZAPIER_MCP_KEY=<Zapier MCP bearer token>
+ZAPIER_MCP_API=<Zapier MCP bearer token>
 ZAPIER_MCP_TOOL_NAME=<Snowflake SQL/query tool name>
 ZAPIER_MCP_SQL_FIELD=sql
 ```

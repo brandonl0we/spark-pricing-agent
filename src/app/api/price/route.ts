@@ -21,7 +21,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await getPricingProvider().calculate(parsed.data);
+    const provider = await getPricingProvider();
+    const result = await provider.calculate(parsed.data);
     return NextResponse.json({ result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown pricing error.";

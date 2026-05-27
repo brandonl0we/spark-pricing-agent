@@ -1,14 +1,22 @@
-import { mockPricingProvider } from "./mock-provider";
 import { PricingProvider } from "./schema";
-import { zapierMcpPricingProvider } from "./zapier-mcp-provider";
-import { zapierPricingProvider } from "./zapier-provider";
 
-export function getPricingProvider(): PricingProvider {
+export async function getPricingProvider(): Promise<PricingProvider> {
   const provider = process.env.PRICING_PROVIDER ?? "mock";
 
-  if (provider === "zapier") return zapierPricingProvider;
-  if (provider === "zapier-mcp") return zapierMcpPricingProvider;
-  if (provider === "mock") return mockPricingProvider;
+  if (provider === "zapier") {
+    const { zapierPricingProvider } = await import("./zapier-provider");
+    return zapierPricingProvider;
+  }
+
+  if (provider === "zapier-mcp") {
+    const { zapierMcpPricingProvider } = await import("./zapier-mcp-provider");
+    return zapierMcpPricingProvider;
+  }
+
+  if (provider === "mock") {
+    const { mockPricingProvider } = await import("./mock-provider");
+    return mockPricingProvider;
+  }
 
   throw new Error(`Unsupported PRICING_PROVIDER: ${provider}`);
 }

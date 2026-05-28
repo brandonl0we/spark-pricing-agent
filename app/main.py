@@ -159,7 +159,7 @@ async def price_status(requestId: str) -> JSONResponse:
     payload = {key: value for key, value in job.items() if key != "startedAt"}
     payload["requestId"] = requestId
     payload["runtimeMs"] = int((monotonic() - job["startedAt"]) * 1000)
-    return JSONResponse(payload, status_code=502 if payload.get("status") == "error" else 200)
+    return JSONResponse(payload)
 
 
 @app.post("/api/price/sync")
@@ -184,11 +184,11 @@ async def _run_pricing_job(request_id: str, body: PricingRequest) -> None:
             "startedAt": _pricing_jobs.get(request_id, {}).get("startedAt", monotonic()),
             "result": result,
         }
-    except Exception as exc:
+    except BaseException as exc:
         _pricing_jobs[request_id] = {
             "status": "error",
             "startedAt": _pricing_jobs.get(request_id, {}).get("startedAt", monotonic()),
-            "error": str(exc)[:1200],
+            "error": f"{type(exc).__name__}: {str(exc)[:1200]}",
         }
     finally:
         _pricing_tasks.pop(request_id, None)

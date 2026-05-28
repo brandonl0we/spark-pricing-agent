@@ -136,10 +136,63 @@ async def price(body: PricingRequest) -> JSONResponse:
     settings = get_settings()
 
     try:
-        result = await calculate_pricing(settings, body)
+        result = await asyncio.wait_for(calculate_pricing(settings, body), timeout=28)
         return JSONResponse({"result": result})
+    except TimeoutError:
+        return JSONResponse({"error": "Pricing request timed out after 28 seconds."}, status_code=504)
     except Exception as exc:
         return JSONResponse({"error": str(exc)[:1200]}, status_code=502)
+
+
+@app.get("/api/diagnostics/price-sample")
+async def diagnostics_price_sample() -> JSONResponse:
+    settings = get_settings()
+    started = monotonic()
+    sample = PricingRequest(
+        planTier="enterprise",
+        region="NORTHAM",
+        productLine="ac",
+        resellerId="0",
+        contactLimit=600000,
+        listPrice=4700,
+        smsFlag=False,
+        whatsapp=False,
+        termLength=12,
+    )
+
+    try:
+        result = await asyncio.wait_for(calculate_pricing(settings, sample), timeout=28)
+        return JSONResponse(
+            {
+                "ok": True,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                "result": result,
+            }
+        )
+    except TimeoutError:
+        return JSONResponse(
+            {
+                "ok": False,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                "error": "Pricing request timed out after 28 seconds.",
+            },
+            status_code=504,
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                "error": str(exc)[:1200],
+            },
+            status_code=502,
+        )
 
 
 @app.get("/")
@@ -149,6 +202,13 @@ async def index() -> HTMLResponse:
 
 def _url_host(value: str | None) -> str | None:
     if not value:
+        return None
+
+    try:
+        from urllib.parse import urlparse
+
+        return urlparse(value).netloc
+    except Exception:
         return None
 
 
@@ -184,12 +244,6 @@ def _post_zapier_mcp_probe(server_url: str, token: str) -> dict[str, Any]:
             "status": exc.code,
             "preview": text,
         }
-    try:
-        from urllib.parse import urlparse
-
-        return urlparse(value).netloc
-    except Exception:
-        return None
 
 
 _INDEX_HTML = """<!DOCTYPE html>
@@ -339,8 +393,14 @@ _INDEX_HTML = """<!DOCTYPE html>
           body: JSON.stringify(body),
         });
         const text = await response.text();
-        const payload = JSON.parse(text);
+        let payload;
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          throw new Error(`Pricing request returned HTTP ${response.status}: ${text.slice(0, 800) || response.statusText}`);
+        }
         if (!response.ok) throw new Error(payload.error || text.slice(0, 500));
+        if (!payload.result) throw new Error(`Pricing response did not include result: ${text.slice(0, 500)}`);
         renderResult(payload.result);
       } catch (error) {
         errorBox.hidden = false;

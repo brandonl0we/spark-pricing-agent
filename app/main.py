@@ -607,15 +607,15 @@ _INDEX_HTML = """<!DOCTYPE html>
         <div class="brandLockup">
           <div class="pixelAgent" aria-hidden="true"></div>
           <div>
-            <p class="eyebrow">Autonomous pricing workspace</p>
-            <h1>Discount guidance</h1>
+            <p class="eyebrow">Deal confidence workspace</p>
+            <h1>Price the next move</h1>
           </div>
         </div>
-        <div class="pill">Snowflake via Zapier MCP</div>
+        <div class="pill">Built for closing with confidence</div>
       </header>
       <div class="grid">
         <form id="pricingForm">
-          <div class="section"><h2>Model inputs</h2><span>All optional</span></div>
+          <div class="section"><h2>Deal details</h2><span>Use what you know</span></div>
           <div class="fields">
             <label>Account ID<input name="accountId" placeholder="AccountID" /></label>
             <label>Reseller ID<input name="resellerId" placeholder="RSID" /></label>
@@ -633,11 +633,11 @@ _INDEX_HTML = """<!DOCTYPE html>
             <label>WhatsApp<select name="whatsapp"><option value="">Unknown</option><option value="true">Yes</option><option value="false">No</option></select></label>
           </div>
           <div id="error" class="error" hidden></div>
-          <button id="submitButton" type="submit">Calculate guidance</button>
+          <button id="submitButton" type="submit">Get pricing guidance</button>
         </form>
         <aside>
-          <div class="section"><h2>Guidance</h2><span id="provider">Waiting</span></div>
-          <div id="output" class="empty">Blank fields are omitted so the pricing model can infer from what is available.</div>
+          <div class="section"><h2>Deal-ready answer</h2><span id="provider">Ready</span></div>
+          <div id="output" class="empty">Enter the deal details you have, then get a price range you can use in the conversation.</div>
         </aside>
       </div>
     </div>
@@ -659,7 +659,7 @@ _INDEX_HTML = """<!DOCTYPE html>
       button.disabled = true;
       button.textContent = "Calculating...";
       errorBox.hidden = true;
-      setLoadingState("Running pricing guidance...");
+      setLoadingState("Finding the best path to yes...");
 
       const data = new FormData(form);
       const body = {
@@ -707,17 +707,17 @@ _INDEX_HTML = """<!DOCTYPE html>
         errorBox.hidden = false;
         errorBox.textContent = error.message || "Pricing request failed.";
         output.className = "empty";
-        output.textContent = "No guidance returned.";
+        output.textContent = "No pricing answer returned.";
       } finally {
         button.disabled = false;
-        button.textContent = "Calculate guidance";
+        button.textContent = "Get pricing guidance";
       }
     });
 
     async function pollPricingStatus(requestId) {
       for (let attempt = 0; attempt < 70; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        setLoadingState(`Running pricing guidance... ${attempt + 1}`);
+        setLoadingState(`Finding the best path to yes... ${attempt + 1}`);
         const response = await fetch(`/api/price/status?requestId=${encodeURIComponent(requestId)}`);
         const text = await response.text();
         let payload;
@@ -743,7 +743,7 @@ _INDEX_HTML = """<!DOCTYPE html>
     }
 
     function renderResult(result) {
-      provider.textContent = result.provider || "snowflake";
+      provider.textContent = result.approvalRequired ? "Approval path" : "Ready to quote";
       output.className = "result";
       output.innerHTML = `
         <div class="approval ${result.approvalRequired ? "warn" : "ok"}">

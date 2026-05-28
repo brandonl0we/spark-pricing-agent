@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from math import isfinite
 from typing import Any
 
@@ -81,7 +81,7 @@ def normalize_pricing_result(value: Any) -> dict[str, Any]:
         "modelVersion": _string(candidate, "modelVersion", "Model Version", "model_version") or "snowflake-quantreg-v1",
         "provider": _string(candidate, "provider", "Provider") or "snowflake",
         "calculatedAt": _string(candidate, "calculatedAt", "Calculated At", "calculated_at")
-        or datetime.now(UTC).isoformat(),
+        or datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -188,7 +188,7 @@ def mock_pricing(request: PricingRequest) -> dict[str, Any]:
     floor_price = round(list_price * (1 - max_discount / 100), 2)
 
     return {
-        "quoteId": f"Q-MOCK-{int(datetime.now(UTC).timestamp())}",
+        "quoteId": f"Q-MOCK-{int(datetime.now(timezone.utc).timestamp())}",
         "recommendedDiscount": base_discount,
         "maxDiscount": max_discount,
         "floorPrice": floor_price,
@@ -202,5 +202,5 @@ def mock_pricing(request: PricingRequest) -> dict[str, Any]:
         ],
         "modelVersion": "mock-python",
         "provider": "mock",
-        "calculatedAt": datetime.now(UTC).isoformat(),
+        "calculatedAt": datetime.now(timezone.utc).isoformat(),
     }

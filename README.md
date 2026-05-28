@@ -1,23 +1,21 @@
 # Spark Pricing Agent
 
-A small Spark-ready pricing app for sales reps. The app collects Snowflake pricing-model inputs, calls a normalized pricing provider, and returns discount guidance that can later be backed by Snowflake directly.
+A small Spark-ready pricing app for sales reps. The deployed runtime is Python/FastAPI so the Zapier MCP call path matches AP-Sparkle's known-working Snowflake bridge.
 
 ## Current State
 
-- Working Next.js app with a sales rep pricing form.
-- `POST /api/price` validates requests with Zod.
+- Working FastAPI app with a sales rep pricing form.
+- `POST /api/price` validates requests with Pydantic.
 - `PRICING_PROVIDER=mock` works locally with deterministic sample guidance.
-- `PRICING_PROVIDER=zapier` is available only for synchronous webhook responders.
-- `PRICING_PROVIDER=zapier-mcp` is ready for a synchronous Zapier MCP Snowflake tool call.
+- `PRICING_PROVIDER=zapier-mcp` calls Zapier MCP with the official Python MCP client.
 - `/api/health` is wired for Spark health checks.
-- `spark.json` is included but not deployed yet.
+- `Dockerfile` forces Spark/Kaniko to deploy the Python app instead of the older Next.js prototype.
 
 ## Local Setup
 
 ```bash
-npm install
-cp .env.example .env
-npm run dev
+pip install .
+uvicorn app.main:app --host 0.0.0.0 --port 3000
 ```
 
 Open `http://localhost:3000`.
@@ -26,9 +24,7 @@ Open `http://localhost:3000`.
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `PRICING_PROVIDER` | Yes | `mock`, `zapier`, or `zapier-mcp`. Defaults to `mock` if omitted. |
-| `ZAPIER_PRICING_WEBHOOK_URL` | For Zapier | Zapier Catch Hook URL used by the backend provider. |
-| `ZAPIER_PRICING_SHARED_SECRET` | Optional | Sent to Zapier as `X-Pricing-Secret`. Useful for simple webhook validation. |
+| `PRICING_PROVIDER` | Yes | `mock` or `zapier-mcp`. Defaults to `mock` if omitted. |
 | `ZAPIER_MCP_SERVER_URL` | For Zapier MCP | Private Zapier MCP server URL. This usually includes auth in the URL and should be treated like a secret. |
 | `ZAPIER_MCP_URL` | For Zapier MCP | Alias used by AP-Sparkle for the Zapier MCP server URL. |
 | `ZAPIER_MCP_KEY` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
@@ -36,7 +32,6 @@ Open `http://localhost:3000`.
 | `ZAPIER_MCP_API` | For Zapier MCP | Bearer token for Zapier MCP when auth is stored separately from the URL. |
 | `ZAPIER_MCP_BEARER_TOKEN` | Optional | Bearer token if your Zapier MCP setup gives auth separately from the URL. |
 | `ZAPIER_MCP_TOOL_NAME` | Optional | Exact Zapier MCP tool name to call. Defaults to `snowflake_execute_sql`. |
-| `ZAPIER_MCP_TIMEOUT_MS` | Optional | Timeout for MCP connect and Snowflake execution calls. Defaults to `25000`. |
 | `PRICING_MODEL_VERSION` | Optional | Included in mock/API responses for audit and debugging. |
 
 ## Pricing Request Shape
@@ -64,22 +59,9 @@ All fields are optional. Blank form fields are omitted from the request.
 }
 ```
 
-Zapier receives this under the `request` key:
-
-```json
-{
-  "request": {
-    "accountId": "123456",
-    "planTier": "Enterprise"
-  },
-  "requestedAt": "2026-05-26T12:00:00.000Z",
-  "source": "spark-pricing-agent"
-}
-```
-
 ## Normalized Pricing Result
 
-The UI expects Zapier or Snowflake to return either this object directly or under a `result` key:
+The UI expects `/api/price` to return this object under a `result` key:
 
 ```json
 {
@@ -92,26 +74,9 @@ The UI expects Zapier or Snowflake to return either this object directly or unde
   "approvalLevel": "None",
   "reasonCodes": ["Segment: mid market", "Term: 12 months"],
   "modelVersion": "snowflake-2026-05",
-  "provider": "zapier",
+  "provider": "zapier-mcp",
   "calculatedAt": "2026-05-26T12:00:00.000Z"
 }
-```
-
-## Zapier V1 Bridge
-
-Recommended Zapier flow:
-
-1. Trigger: Catch Hook.
-2. Optional validation: compare `X-Pricing-Secret` to the Spark secret.
-3. Run the Snowflake/Python pricing step.
-4. Return the normalized pricing result synchronously.
-
-The Spark app keeps the frontend stable while this backend provider changes:
-
-```text
-UI -> /api/price -> mock now
-UI -> /api/price -> Zapier soon
-UI -> /api/price -> direct Snowflake later
 ```
 
 ## Zapier MCP Bridge
@@ -140,6 +105,5 @@ CALL AC.SANDBOX.CALCULATE_PRICING_GUIDANCE(
 
 - Health check path: `/api/health`.
 - Set `PRICING_PROVIDER=zapier-mcp` in Spark to use the Zapier MCP Snowflake connection.
-- Add `ZAPIER_PRICING_SHARED_SECRET` if the Zap should validate inbound requests.
 - For the MCP bridge, set `PRICING_PROVIDER=zapier-mcp` and add the `ZAPIER_MCP_*` secrets above.
-- Direct Snowflake can be added later behind the same provider interface in `src/lib/pricing/provider.ts`.
+- Direct Snowflake can be added later behind the same provider interface in `app/pricing.py`.

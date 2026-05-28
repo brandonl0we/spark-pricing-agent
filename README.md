@@ -136,13 +136,10 @@ CALL AC.SANDBOX.CALCULATE_PRICING_GUIDANCE(
 );
 ```
 
-If the tool input field is not named `sql`, set `ZAPIER_MCP_SQL_FIELD` to the exact field name shown in Zapier MCP.
-
 ## Spark Notes
 
 - Health check path: `/api/health`.
-- Set `PRICING_PROVIDER=zapier` in Spark once the webhook is ready.
-- Add `ZAPIER_PRICING_WEBHOOK_URL` as a Spark secret.
+- Set `PRICING_PROVIDER=zapier-mcp` in Spark to use the Zapier MCP Snowflake connection.
 - Add `ZAPIER_PRICING_SHARED_SECRET` if the Zap should validate inbound requests.
 - For the MCP bridge, set `PRICING_PROVIDER=zapier-mcp` and add the `ZAPIER_MCP_*` secrets above.
 - Direct Snowflake can be added later behind the same provider interface in `src/lib/pricing/provider.ts`.

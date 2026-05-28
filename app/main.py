@@ -314,55 +314,190 @@ _INDEX_HTML = """<!DOCTYPE html>
   <title>Pricing Agent</title>
   <style>
     :root {
-      --ink: #111827;
-      --muted: #667085;
-      --line: #d9dee8;
-      --panel: #f8fafc;
-      --blue: #245cff;
-      --green: #087443;
-      --red: #b42318;
-      --white: #fff;
+      --charcoal-1000: #00001f;
+      --charcoal-900: #05052b;
+      --charcoal-800: #25263b;
+      --charcoal-700: #35354a;
+      --charcoal-500: #70718d;
+      --charcoal-400: #9f9fb8;
+      --charcoal-300: #dfe0ea;
+      --ac-blue-700: #004cff;
+      --ac-blue-500: #819eff;
+      --ac-blue-300: #d7e5ff;
+      --midday-500: #ffce54;
+      --moss-500: #7db485;
+      --red-500: #ff8686;
+      --red-300: #ffcaca;
+      --white: #ffffff;
+      --ai-gradient: linear-gradient(180deg, #004cff 21%, #eb4786 67%, #f67dac 100%);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #eef2f7; }
-    main { min-height: 100vh; padding: 24px; }
-    .shell { max-width: 1180px; margin: 0 auto; background: var(--white); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-    header { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--line); }
-    h1 { margin: 0; font-size: 22px; font-weight: 650; }
+    body {
+      margin: 0;
+      color: var(--white);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(0, 76, 255, .28), transparent 32%),
+        linear-gradient(145deg, var(--charcoal-1000), #080832 52%, #11113e);
+      min-height: 100vh;
+    }
+    main { min-height: 100vh; padding: 28px; }
+    .shell {
+      max-width: 1220px;
+      margin: 0 auto;
+      background: rgba(255,255,255,.97);
+      color: var(--charcoal-1000);
+      border: 1px solid rgba(223,224,234,.25);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(0,0,31,.32);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--charcoal-300);
+      background: linear-gradient(90deg, #fff, #f6f8ff);
+    }
+    .brandLockup { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .pixelAgent {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
+      image-rendering: pixelated;
+      background:
+        linear-gradient(var(--ac-blue-700), var(--ac-blue-700)) 8px 4px / 20px 4px no-repeat,
+        linear-gradient(var(--charcoal-1000), var(--charcoal-1000)) 4px 8px / 28px 20px no-repeat,
+        linear-gradient(var(--ac-blue-300), var(--ac-blue-300)) 10px 14px / 4px 4px no-repeat,
+        linear-gradient(var(--midday-500), var(--midday-500)) 22px 14px / 4px 4px no-repeat,
+        linear-gradient(var(--ac-blue-700), var(--ac-blue-700)) 8px 28px / 6px 4px no-repeat,
+        linear-gradient(var(--ac-blue-700), var(--ac-blue-700)) 22px 28px / 6px 4px no-repeat;
+      animation: botBreathe 2.8s steps(2, end) infinite;
+      filter: drop-shadow(0 6px 12px rgba(0,76,255,.25));
+    }
+    @keyframes botBreathe {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; }
     h2 { margin: 0; font-size: 15px; }
-    .eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
-    .pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 7px 10px; font-size: 12px; color: var(--muted); }
-    .grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(340px, .85fr); min-height: 680px; }
-    form { padding: 22px 24px; border-right: 1px solid var(--line); }
-    .section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .section span { color: var(--muted); font-size: 12px; }
+    .eyebrow { margin: 0 0 4px; color: var(--charcoal-500); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .pill {
+      border: 1px solid var(--charcoal-300);
+      background: #fff;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--charcoal-700);
+      white-space: nowrap;
+    }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.48fr) minmax(360px, .82fr); min-height: 700px; }
+    form { padding: 24px; border-right: 1px solid var(--charcoal-300); background: #fff; }
+    .section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .section span { color: var(--charcoal-500); font-size: 12px; }
     .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-    label { display: grid; gap: 6px; color: #344054; font-size: 12px; font-weight: 600; }
-    input, select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 10px 11px; color: var(--ink); background: var(--white); font: inherit; font-size: 14px; }
-    input:focus, select:focus { outline: 2px solid rgba(36, 92, 255, .18); border-color: var(--blue); }
-    button { margin-top: 18px; width: 100%; border: 0; border-radius: 6px; padding: 12px 14px; background: var(--blue); color: var(--white); font: inherit; font-weight: 650; cursor: pointer; }
-    button:disabled { opacity: .55; cursor: wait; }
-    aside { padding: 22px 24px; background: var(--panel); }
-    .error { color: var(--red); background: #fff1f0; border: 1px solid #fecdca; border-radius: 6px; padding: 10px 12px; margin-top: 14px; white-space: pre-wrap; }
-    .empty { margin-top: 20px; color: var(--muted); background: var(--white); border: 1px solid var(--line); border-radius: 8px; padding: 18px; }
+    label { display: grid; gap: 6px; color: var(--charcoal-700); font-size: 12px; font-weight: 650; }
+    input, select {
+      width: 100%;
+      border: 1px solid var(--charcoal-300);
+      border-radius: 6px;
+      padding: 10px 11px;
+      color: var(--charcoal-1000);
+      background: #fff;
+      font: inherit;
+      font-size: 14px;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    input:focus, select:focus {
+      outline: 0;
+      border-color: var(--ac-blue-700);
+      box-shadow: 0 0 0 3px rgba(0,76,255,.14);
+    }
+    button {
+      margin-top: 18px;
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 14px;
+      background: var(--ac-blue-700);
+      color: var(--white);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0,76,255,.22);
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 30px rgba(0,76,255,.28); }
+    button:disabled { opacity: .68; cursor: wait; transform: none; }
+    aside { padding: 24px; background: linear-gradient(180deg, #f7f8ff, #eef2ff); }
+    .error { color: #8a1f17; background: #fff1f0; border: 1px solid #fecdca; border-radius: 6px; padding: 10px 12px; margin-top: 14px; white-space: pre-wrap; }
+    .empty, .loadingState {
+      margin-top: 20px;
+      color: var(--charcoal-500);
+      background: #fff;
+      border: 1px solid var(--charcoal-300);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .loadingState {
+      display: grid;
+      gap: 14px;
+      min-height: 156px;
+      align-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .loadingState::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, transparent 0 16px, rgba(0,76,255,.05) 16px 18px);
+      animation: scanGrid 1.6s linear infinite;
+    }
+    @keyframes scanGrid { from { transform: translateX(-18px); } to { transform: translateX(18px); } }
+    .loadingLabel { position: relative; z-index: 1; font-weight: 700; color: var(--charcoal-800); }
+    .pixelTrack {
+      position: relative;
+      z-index: 1;
+      height: 12px;
+      border-radius: 0;
+      background: var(--charcoal-300);
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+    .pixelTrack::after {
+      content: "";
+      display: block;
+      width: 34%;
+      height: 100%;
+      background: var(--ai-gradient);
+      animation: pixelRun 1.1s steps(7, end) infinite;
+    }
+    @keyframes pixelRun { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
     .result { display: grid; gap: 14px; margin-top: 16px; }
-    .approval { display: flex; justify-content: space-between; gap: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--white); }
-    .approval.ok strong { color: var(--green); }
-    .approval.warn strong { color: var(--red); }
+    .approval { display: flex; justify-content: space-between; gap: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--charcoal-300); background: #fff; animation: panelIn .32s ease both; }
+    .approval.ok strong { color: var(--moss-500); }
+    .approval.warn strong { color: #b42318; }
     .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-    .metric { padding: 14px; background: var(--white); border: 1px solid var(--line); border-radius: 8px; }
-    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
-    .metric strong { font-size: 22px; }
-    ul { margin: 8px 0 0; padding-left: 18px; color: #344054; }
+    .metric { padding: 14px; background: #fff; border: 1px solid var(--charcoal-300); border-radius: 8px; animation: panelIn .34s ease both; }
+    .metric:nth-child(2) { animation-delay: .03s; }
+    .metric:nth-child(3) { animation-delay: .06s; }
+    .metric:nth-child(4) { animation-delay: .09s; }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .metric span { display: block; color: var(--charcoal-500); font-size: 12px; margin-bottom: 4px; }
+    .metric strong { font-size: 24px; color: var(--charcoal-1000); }
+    ul { margin: 8px 0 0; padding-left: 18px; color: var(--charcoal-700); }
     dl { display: grid; gap: 8px; margin: 0; }
     .meta { display: grid; grid-template-columns: 84px 1fr; gap: 6px; font-size: 13px; }
-    dt { color: var(--muted); }
+    dt { color: var(--charcoal-500); }
     dd { margin: 0; word-break: break-word; }
     @media (max-width: 880px) {
       main { padding: 0; }
       .shell { border-radius: 0; border-left: 0; border-right: 0; }
       .grid { grid-template-columns: 1fr; }
-      form { border-right: 0; border-bottom: 1px solid var(--line); }
+      form { border-right: 0; border-bottom: 1px solid var(--charcoal-300); }
       .fields { grid-template-columns: 1fr; }
     }
   </style>
@@ -371,9 +506,12 @@ _INDEX_HTML = """<!DOCTYPE html>
   <main>
     <div class="shell">
       <header>
-        <div>
-          <p class="eyebrow">Spark pricing workspace</p>
-          <h1>Discount guidance</h1>
+        <div class="brandLockup">
+          <div class="pixelAgent" aria-hidden="true"></div>
+          <div>
+            <p class="eyebrow">Autonomous pricing workspace</p>
+            <h1>Discount guidance</h1>
+          </div>
         </div>
         <div class="pill">Snowflake via Zapier MCP</div>
       </header>
@@ -423,8 +561,7 @@ _INDEX_HTML = """<!DOCTYPE html>
       button.disabled = true;
       button.textContent = "Calculating...";
       errorBox.hidden = true;
-      output.className = "empty";
-      output.textContent = "Running pricing guidance...";
+      setLoadingState("Running pricing guidance...");
 
       const data = new FormData(form);
       const body = {
@@ -482,7 +619,7 @@ _INDEX_HTML = """<!DOCTYPE html>
     async function pollPricingStatus(requestId) {
       for (let attempt = 0; attempt < 70; attempt += 1) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        output.textContent = `Running pricing guidance... ${attempt + 1}`;
+        setLoadingState(`Running pricing guidance... ${attempt + 1}`);
         const response = await fetch(`/api/price/status?requestId=${encodeURIComponent(requestId)}`);
         const text = await response.text();
         let payload;
@@ -496,6 +633,15 @@ _INDEX_HTML = """<!DOCTYPE html>
         if (!response.ok && payload.status !== "pending") throw new Error(payload.error || text.slice(0, 500));
       }
       throw new Error("Pricing request timed out while waiting for the background job.");
+    }
+
+    function setLoadingState(label) {
+      output.className = "loadingState";
+      output.innerHTML = `
+        <div class="pixelAgent" aria-hidden="true"></div>
+        <div class="loadingLabel">${escapeHtml(label)}</div>
+        <div class="pixelTrack" aria-hidden="true"></div>
+      `;
     }
 
     function renderResult(result) {

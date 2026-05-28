@@ -2,6 +2,7 @@ import asyncio
 import json
 import urllib.error
 import urllib.request
+import uuid
 from time import monotonic
 from typing import Any
 
@@ -13,6 +14,9 @@ from app.pricing import PricingRequest, calculate_pricing
 from app.zapier_client import list_zapier_tools
 
 app = FastAPI(title="spark-pricing-agent", version="0.1.0")
+_pricing_jobs: dict[str, dict[str, Any]] = {}
+_pricing_tasks: dict[str, asyncio.Task[None]] = {}
+_JOB_TTL_SECONDS = 600
 
 
 @app.get("/api/health")
@@ -133,8 +137,34 @@ async def diagnostics_network() -> JSONResponse:
 
 @app.post("/api/price")
 async def price(body: PricingRequest) -> JSONResponse:
-    settings = get_settings()
+    _cleanup_pricing_jobs()
+    request_id = uuid.uuid4().hex
+    _pricing_jobs[request_id] = {
+        "status": "pending",
+        "startedAt": monotonic(),
+    }
+    _pricing_tasks[request_id] = asyncio.create_task(_run_pricing_job(request_id, body))
 
+    return JSONResponse({"status": "pending", "requestId": request_id})
+
+
+@app.get("/api/price/status")
+async def price_status(requestId: str) -> JSONResponse:
+    _cleanup_pricing_jobs()
+    job = _pricing_jobs.get(requestId)
+
+    if not job:
+        return JSONResponse({"status": "not_found", "error": "Pricing request was not found or expired."}, status_code=404)
+
+    payload = {key: value for key, value in job.items() if key != "startedAt"}
+    payload["requestId"] = requestId
+    payload["runtimeMs"] = int((monotonic() - job["startedAt"]) * 1000)
+    return JSONResponse(payload, status_code=502 if payload.get("status") == "error" else 200)
+
+
+@app.post("/api/price/sync")
+async def price_sync(body: PricingRequest) -> JSONResponse:
+    settings = get_settings()
     try:
         result = await asyncio.wait_for(calculate_pricing(settings, body), timeout=28)
         return JSONResponse({"result": result})
@@ -142,6 +172,36 @@ async def price(body: PricingRequest) -> JSONResponse:
         return JSONResponse({"error": "Pricing request timed out after 28 seconds."}, status_code=504)
     except Exception as exc:
         return JSONResponse({"error": str(exc)[:1200]}, status_code=502)
+
+
+async def _run_pricing_job(request_id: str, body: PricingRequest) -> None:
+    settings = get_settings()
+
+    try:
+        result = await asyncio.wait_for(calculate_pricing(settings, body), timeout=90)
+        _pricing_jobs[request_id] = {
+            "status": "complete",
+            "startedAt": _pricing_jobs.get(request_id, {}).get("startedAt", monotonic()),
+            "result": result,
+        }
+    except Exception as exc:
+        _pricing_jobs[request_id] = {
+            "status": "error",
+            "startedAt": _pricing_jobs.get(request_id, {}).get("startedAt", monotonic()),
+            "error": str(exc)[:1200],
+        }
+    finally:
+        _pricing_tasks.pop(request_id, None)
+
+
+def _cleanup_pricing_jobs() -> None:
+    cutoff = monotonic() - _JOB_TTL_SECONDS
+    expired = [request_id for request_id, job in _pricing_jobs.items() if job.get("startedAt", 0) < cutoff]
+    for request_id in expired:
+        _pricing_jobs.pop(request_id, None)
+        task = _pricing_tasks.pop(request_id, None)
+        if task and not task.done():
+            task.cancel()
 
 
 @app.get("/api/diagnostics/price-sample")
@@ -400,8 +460,14 @@ _INDEX_HTML = """<!DOCTYPE html>
           throw new Error(`Pricing request returned HTTP ${response.status}: ${text.slice(0, 800) || response.statusText}`);
         }
         if (!response.ok) throw new Error(payload.error || text.slice(0, 500));
-        if (!payload.result) throw new Error(`Pricing response did not include result: ${text.slice(0, 500)}`);
-        renderResult(payload.result);
+        if (payload.status === "pending" && payload.requestId) {
+          const result = await pollPricingStatus(payload.requestId);
+          renderResult(result);
+        } else if (payload.result) {
+          renderResult(payload.result);
+        } else {
+          throw new Error(`Pricing response did not include result: ${text.slice(0, 500)}`);
+        }
       } catch (error) {
         errorBox.hidden = false;
         errorBox.textContent = error.message || "Pricing request failed.";
@@ -412,6 +478,25 @@ _INDEX_HTML = """<!DOCTYPE html>
         button.textContent = "Calculate guidance";
       }
     });
+
+    async function pollPricingStatus(requestId) {
+      for (let attempt = 0; attempt < 70; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        output.textContent = `Running pricing guidance... ${attempt + 1}`;
+        const response = await fetch(`/api/price/status?requestId=${encodeURIComponent(requestId)}`);
+        const text = await response.text();
+        let payload;
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          throw new Error(`Pricing status returned HTTP ${response.status}: ${text.slice(0, 800) || response.statusText}`);
+        }
+        if (payload.status === "complete" && payload.result) return payload.result;
+        if (payload.status === "error") throw new Error(payload.error || "Pricing request failed.");
+        if (!response.ok && payload.status !== "pending") throw new Error(payload.error || text.slice(0, 500));
+      }
+      throw new Error("Pricing request timed out while waiting for the background job.");
+    }
 
     function renderResult(result) {
       provider.textContent = result.provider || "snowflake";

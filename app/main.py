@@ -1,3 +1,7 @@
+import asyncio
+import json
+import urllib.error
+import urllib.request
 from time import monotonic
 from typing import Any
 
@@ -48,9 +52,12 @@ async def diagnostics_mcp() -> JSONResponse:
         )
 
     try:
-        tool_names = await list_zapier_tools(
-            server_url=settings.zapier_mcp_server_url,
-            token=settings.zapier_mcp_key,
+        tool_names = await asyncio.wait_for(
+            list_zapier_tools(
+                server_url=settings.zapier_mcp_server_url,
+                token=settings.zapier_mcp_key,
+            ),
+            timeout=8,
         )
         return JSONResponse(
             {
@@ -69,6 +76,56 @@ async def diagnostics_mcp() -> JSONResponse:
                 "provider": settings.pricing_provider,
                 "runtimeMs": int((monotonic() - started) * 1000),
                 "error": str(exc)[:1000],
+            },
+            status_code=502,
+        )
+
+
+@app.get("/api/diagnostics/network")
+async def diagnostics_network() -> JSONResponse:
+    settings = get_settings()
+    started = monotonic()
+
+    if not settings.zapier_mcp_server_url or not settings.zapier_mcp_key:
+        return JSONResponse(
+            {
+                "ok": False,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                "error": "Zapier MCP URL or key is not configured.",
+            },
+            status_code=500,
+        )
+
+    try:
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                _post_zapier_mcp_probe,
+                settings.zapier_mcp_server_url,
+                settings.zapier_mcp_key,
+            ),
+            timeout=5,
+        )
+        return JSONResponse(
+            {
+                "ok": result["status"] < 500,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                **result,
+            },
+            status_code=200 if result["status"] < 500 else 502,
+        )
+    except Exception as exc:
+        return JSONResponse(
+            {
+                "ok": False,
+                "runtime": "python-fastapi",
+                "provider": settings.pricing_provider,
+                "runtimeMs": int((monotonic() - started) * 1000),
+                "error": str(exc)[:1000],
+                "errorType": type(exc).__name__,
             },
             status_code=502,
         )
@@ -93,6 +150,40 @@ async def index() -> HTMLResponse:
 def _url_host(value: str | None) -> str | None:
     if not value:
         return None
+
+
+def _post_zapier_mcp_probe(server_url: str, token: str) -> dict[str, Any]:
+    body = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "id": "diagnostic-ping",
+            "method": "tools/list",
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        server_url,
+        data=body,
+        method="POST",
+        headers={
+            "accept": "application/json, text/event-stream",
+            "content-type": "application/json",
+            "authorization": f"Bearer {token}",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=4) as response:
+            text = response.read(800).decode("utf-8", errors="replace")
+            return {
+                "status": response.status,
+                "preview": text,
+            }
+    except urllib.error.HTTPError as exc:
+        text = exc.read(800).decode("utf-8", errors="replace")
+        return {
+            "status": exc.code,
+            "preview": text,
+        }
     try:
         from urllib.parse import urlparse
 

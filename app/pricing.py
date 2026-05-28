@@ -87,7 +87,7 @@ def normalize_pricing_result(value: Any) -> dict[str, Any]:
 
 def _find_pricing_result(value: Any) -> dict[str, Any] | None:
     if isinstance(value, dict):
-        nested = value.get("result") or value.get("CALCULATE_PRICING_GUIDANCE")
+        nested = value.get("result") or value.get("results") or value.get("CALCULATE_PRICING_GUIDANCE")
         if nested is not None:
             found = _find_pricing_result(nested)
             if found:

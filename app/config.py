@@ -11,6 +11,13 @@ def _clean_secret(value: str | None) -> str | None:
         cleaned = cleaned[7:].strip()
     return cleaned or None
 
+
+def _clean_tool_name(value: str | None) -> str:
+    cleaned = _clean_secret(value)
+    if not cleaned or cleaned.lower() in {"sql", "statement", "query"}:
+        return "snowflake_execute_sql"
+    return cleaned
+
 from pydantic import BaseModel
 
 
@@ -24,7 +31,7 @@ class Settings(BaseModel):
         or getenv("ZAPIER_MCP_API")
         or getenv("ZAPIER_MCP_BEARER_TOKEN")
     )
-    zapier_mcp_tool_name: str = getenv("ZAPIER_MCP_TOOL_NAME", "snowflake_execute_sql")
+    zapier_mcp_tool_name: str = _clean_tool_name(getenv("ZAPIER_MCP_TOOL_NAME"))
 
 
 @lru_cache

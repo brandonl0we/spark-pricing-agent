@@ -3,7 +3,6 @@ import { listZapierMcpTools } from "@/lib/pricing/zapier-mcp-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
 
 export async function GET() {
   const startedAt = Date.now();

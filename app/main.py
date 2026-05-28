@@ -340,8 +340,91 @@ _INDEX_HTML = """<!DOCTYPE html>
         radial-gradient(circle at 12% 8%, rgba(0, 76, 255, .28), transparent 32%),
         linear-gradient(145deg, var(--charcoal-1000), #080832 52%, #11113e);
       min-height: 100vh;
+      overflow-x: hidden;
     }
-    main { min-height: 100vh; padding: 28px; }
+    .celebrationLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .spark {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--ac-blue-300);
+      image-rendering: pixelated;
+      opacity: .75;
+      animation: driftSpark 8s linear infinite;
+    }
+    .spark:nth-child(1) { left: 9%; top: 18%; animation-delay: -1s; background: var(--midday-500); }
+    .spark:nth-child(2) { left: 22%; top: 72%; animation-delay: -4s; background: #eb4786; }
+    .spark:nth-child(3) { left: 71%; top: 14%; animation-delay: -2.5s; background: var(--ac-blue-500); }
+    .spark:nth-child(4) { left: 88%; top: 58%; animation-delay: -6s; background: #f67dac; }
+    .spark:nth-child(5) { left: 48%; top: 86%; animation-delay: -3.2s; background: var(--ac-blue-300); }
+    @keyframes driftSpark {
+      0% { transform: translate3d(0, 14px, 0); opacity: 0; }
+      12% { opacity: .8; }
+      100% { transform: translate3d(34px, -92px, 0); opacity: 0; }
+    }
+    .firework {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 0;
+      background: transparent;
+      image-rendering: pixelated;
+      animation: pixelBurst 4.8s steps(1, end) infinite;
+    }
+    .firework.one { left: 16%; top: 20%; color: var(--ac-blue-300); animation-delay: .2s; }
+    .firework.two { left: 82%; top: 22%; color: var(--midday-500); animation-delay: 1.55s; }
+    .firework.three { left: 68%; top: 76%; color: #f67dac; animation-delay: 2.8s; }
+    @keyframes pixelBurst {
+      0%, 18%, 100% {
+        opacity: 0;
+        box-shadow: 0 0 currentColor;
+        transform: scale(.8);
+      }
+      20% {
+        opacity: 1;
+        box-shadow:
+          0 -18px currentColor,
+          18px 0 currentColor,
+          0 18px currentColor,
+          -18px 0 currentColor,
+          12px -12px currentColor,
+          12px 12px currentColor,
+          -12px 12px currentColor,
+          -12px -12px currentColor;
+        transform: scale(1);
+      }
+      34% {
+        opacity: .72;
+        box-shadow:
+          0 -34px currentColor,
+          34px 0 currentColor,
+          0 34px currentColor,
+          -34px 0 currentColor,
+          24px -24px currentColor,
+          24px 24px currentColor,
+          -24px 24px currentColor,
+          -24px -24px currentColor;
+      }
+      48% {
+        opacity: 0;
+        box-shadow:
+          0 -46px currentColor,
+          46px 0 currentColor,
+          0 46px currentColor,
+          -46px 0 currentColor,
+          32px -32px currentColor,
+          32px 32px currentColor,
+          -32px 32px currentColor,
+          -32px -32px currentColor;
+      }
+    }
+    main { position: relative; z-index: 1; min-height: 100vh; padding: 28px; }
     .shell {
       max-width: 1220px;
       margin: 0 auto;
@@ -500,9 +583,24 @@ _INDEX_HTML = """<!DOCTYPE html>
       form { border-right: 0; border-bottom: 1px solid var(--charcoal-300); }
       .fields { grid-template-columns: 1fr; }
     }
+    @media (prefers-reduced-motion: reduce) {
+      .spark, .firework, .pixelAgent, .pixelTrack::after, .loadingState::before, .metric, .approval {
+        animation: none;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="celebrationLayer" aria-hidden="true">
+    <span class="spark"></span>
+    <span class="spark"></span>
+    <span class="spark"></span>
+    <span class="spark"></span>
+    <span class="spark"></span>
+    <span class="firework one"></span>
+    <span class="firework two"></span>
+    <span class="firework three"></span>
+  </div>
   <main>
     <div class="shell">
       <header>
